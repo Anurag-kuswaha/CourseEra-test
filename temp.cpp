@@ -1,143 +1,103 @@
+#include <algorithm>
 #include <iostream>
+#include <iomanip>
+#include <cassert>
 #include <vector>
-#include<queue>
-#include<set>
+#include <cmath>
+
+using std::vector;
+using std::pair;
 using namespace std;
-#define INF 1e12
-#define ll long long
-void dfs_run(vector<vector<ll> >& adj, ll s, vector<ll>& reach) {
-    if (reach[s]) return;
-    reach[s] = 1;
-    for (int i = 0;i < adj[s].size();i++) {
-        if (!reach[adj[s][i]]) {
-            dfs_run(adj, adj[s][i], reach);
-        }
-    }
+vector<int> super_set;
+void make_set(int i) {
+    super_set[i] = i;
 }
-void dfs(vector<vector<ll> >& adj, ll s, vector<ll>& reach) {
-
-    dfs_run(adj, s, reach);
+int find_id(int i) {
+    while (i != super_set[i]) {
+        i = super_set[i];
+    }
+    return i;
 }
-void shortestpath(vector<vector<ll> >& adj, vector<vector<ll> >& cost, ll s) {
-    std::vector<ll> dist(adj.size(), INF);
-    std::vector<ll> prev(adj.size(), INF);
-    dist[s] = 0;
-    ll n = adj.size();
-    bool cycle = true;
-    ll last_change;
-    vector<ll> in_the_cycle(adj.size(), 0);
-    //run dfs to check which is the possible path to able to reach from the source;
-    vector<ll> reach(adj.size(), 0); //possible to explore or nof from the S;
-    dfs(adj, s, reach);
-    while (n-- != 0) {
-
-        bool relax = false;
-
-        for (ll i = 0;i < adj.size();i++) {
-
-            for (ll j = 0;j < adj[i].size();j++) {
-                ll v = adj[i][j];
-                 if (reach[v]) {
-                if (dist[v] > (dist[i] + cost[i][j])) {
-
-                    dist[v] = dist[i] + cost[i][j];
-                    relax = true;
-                    prev[v] = i;
-                    last_change = v;
-                    in_the_cycle[v] = 1;
-                }
-                 }
-            }
-        }
-
-
-        if (relax == false) { cycle = false; break; }
+int parent(int i) {
+    while (i != super_set[i]) {
+        i = super_set[i];
     }
-    if (cycle == false) {
-        //no cycle;
-       // cout << "no cycle \n";
-        for (ll i = 0;i < adj.size();i++) {
-
-            if (reach[i] == 0) cout << "*" << "\n";
-            else cout << dist[i] << "\n";
+    return i;
+}
+void union_set(int u, int v) {
+    int id1 = find_id(u);
+    int id2 = find_id(v);
+    if (id1 == id2) return;
+    super_set[parent(v)] = id1;
+}
+double clustering(vector<int> x, vector<int> y, int k) {
+    //write your code here
+    /*
+    * use kruskal alogorithm;
+    * now we have n subset and each subset have one vertices and we want to reduce our subset in to k subset;
+    * for that i will calculate the distance of each one of them from one another and sort the distance
+    * increasing order and then  union the least distance sub-set up to we will reach the total k subets;
+    */
+    int n = x.size();
+    std::vector<pair<double, pair<int, int>>> dist; //first store the distance and pair store the vertices
+    for (int i = 0;i < n;i++) {
+        for (int j = 0;j < n;j++) {
+            if (i == j) continue;
+            double x_ = abs(x[i] - x[j]);
+            double y_ = abs(y[i] - y[j]);
+            double d = x_ * x_ + y_ * y_;
+            d = pow(d, 0.5);
+            dist.push_back({ d,{i,j} });
         }
     }
-    else {
-
-        //cycle is there in the path;
-      /*  ll n = adj.size();
-        while (n--) {
-            last_change = prev[last_change]; //now this will surely reach in the negtive cycle;
-        }
-
-        queue<ll> cyc_v;
-        ll y = prev[last_change];
-        cyc_v.push(last_change);
-
-        while (last_change != y) {
-            cyc_v.push(y);
-            y = prev[y];
-
-        } */
-        queue<ll> cyc_v;
-        for (int i = 0;i < adj.size();i++) {
-            if (in_the_cycle[i])cyc_v.push(i);
-        }
-
-
-        //bfs to find all the path reachable from the negative cycle vertices ;
-        vector<ll> visited(adj.size(), 0);
-        vector<ll> neg_path(adj.size(), 0);
-        while (!cyc_v.empty()) {
-            ll top = cyc_v.front();
-            cyc_v.pop();
-
-            for (ll i = 0;i < adj[top].size();i++) {
-                if (!visited[adj[top][i]]) {
-                    visited[adj[top][i]] = 1;
-                    cyc_v.push(adj[top][i]);
-                    neg_path[adj[top][i]] = 1; //negative path is there ;
-                }
-            }
-
-        }
-
-
-        for (ll i = 0;i < adj.size();i++) {
-
-            if (reach[i]) {
-                //path is reachable
-                if (neg_path[i] == 1) {
-                    cout << "-" << "\n";
-
-                }
-                else {
-                    cout << dist[i] << "\n";
-                }
-            }
-            else {
-                //path is non reachable
-                cout << "*" << "\n";
-            }
-
-        }
+    super_set.resize(n);
+    for (int i = 0;i < n;i++) {
+        make_set(i);
     }
-    //return 1;
+    sort(begin(dist), end(dist), [&](pair<double, pair<int, int>>& a, pair<double, pair<int, int>>& b)
+        {return a.first < b.first; });
+    int count = n;
+    for (int i = 0;i < dist.size();i++) {
+        if (n == k) break;
+        pair<double, pair<int, int>> top = dist[i];
+        pair<int, int> ver = top.second;
+        int u = ver.first; int v = ver.second;
+        if (find_id(u) == find_id(v)) continue;
+        //union this;
+        union_set(u, v);
+        n--;
+        /* int g = 0;
+         for (auto it : super_set) {
+             cout << g << " : " << it << " \n";
+             g++;
+          }
+          cout << "now next part" << "\n";
+          */
+
+    }  double min_ = 100000.00;
+    n = dist.size();
+    for (int i = 0;i < n;i++) {
+
+        pair<double, pair<int, int>> top = dist[i];
+        pair<int, int> ver = top.second;
+        double d = top.first;
+        int u = ver.first; int v = ver.second;
+        if (find_id(u) != find_id(v)) {
+            min_ = min(min_, d);
+        }
+
+    }
+    return min_;
 }
 
 int main() {
-    ll n, m;
-    std::cin >> n >> m;
-    vector<vector<ll> > adj(n, vector<ll>());
-    vector<vector<ll> > cost(n, vector<ll>());
-    for (ll i = 0; i < m; i++) {
-        ll x, y, w;
-        std::cin >> x >> y >> w;
-        adj[x - 1].push_back(y - 1);
-        cost[x - 1].push_back(w);
+    size_t n;
+    int k;
+    std::cin >> n;
+    vector<int> x(n), y(n);
+    for (size_t i = 0; i < n; i++) {
+        std::cin >> x[i] >> y[i];
     }
-    ll s; cin >> s;
-    s--;
-    //std::cout <<
-    shortestpath(adj, cost, s);
+    std::cin >> k;
+    std::cout << std::setprecision(10) << clustering(x, y, k) << std::endl;
 }

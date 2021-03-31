@@ -51,7 +51,7 @@ int main() {
 		ll x, y; cin >> x >> y;
 		cout<<find_path(adj, x - 1, y - 1, visited)<<"\n";
 		
-		////cout << "finised" << "\n";
+		//cout << "finised" << "\n";
 	
 	
 	
